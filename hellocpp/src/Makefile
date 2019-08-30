@@ -1,16 +1,36 @@
 #OBJS := hellocpp.o
+
 #OBJS := strobe.o
-OBJS := Arduino.o arduino_test.o
+
+#OBJS := Arduino.o arduino_test.o
+
+OBJS := wiringPi_test.o
+OBJS += wiringPi/wiringPi.o 
+OBJS += wiringPi/wiringSerial.o 
+OBJS += wiringPi/wiringShift.o 
+OBJS += wiringPi/piHiPri.o 
+OBJS += wiringPi/wiringPiSPI.o 
+OBJS += wiringPi/wiringPiI2C.o 
+
 BIN := hellocpp
+
+CFLAGS := 
+LDFLAGS :=
+
+all: $(BIN)
 
 # build hellocpp executable when user executes "make"
 $(BIN): $(OBJS)
-	$(CXX) $(LDFLAGS) $(OBJS) -o $@ 
+	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 
 %.o: %.cpp
-	$(CXX) $(CXXLAGS) -o $@ -c $<
+	$(CXX) $(CFLAGS) -o $@ -c $<
+
+%.o: %.c
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 # remove object files and executable when user executes "make clean"
 clean:
-	rm *.o *.a $(BIN)
+	rm -rf *.o *.a $(BIN) $(OBJS)
+
 
