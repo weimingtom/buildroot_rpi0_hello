@@ -1,0 +1,124 @@
+https://github.com/orangepi-xunlong/wiringOP
+http://www.orangepi.cn/Docs/Docscn/WiringPi.html
+---
+http://wiki.banana-pi.org/Getting_Started_with_M2_Zero#WiringPi
+https://github.com/BPI-SINOVOIP/BPI-WiringPi2
+---
+http://wiki.friendlyarm.com/wiki/index.php/NanoPi_Duo2/zh
+http://wiki.friendlyarm.com/wiki/index.php/WiringNP:_NanoPi_NEO/NEO2/Air_GPIO_Programming_with_C/zh
+https://github.com/friendlyarm/WiringNP
+----
+npi implement
+
+
+/*
+ * waitForInterrupt:
+ *	Pi Specific.
+ *	Wait for Interrupt on a GPIO pin.
+ *	This is actually done via the /sys/class/gpio interface regardless of
+ *	the wiringPi access mode in-use. Maybe sometime it might get a better
+ *	way for a bit more efficiency.
+ *********************************************************************************
+ */
+
+int waitForInterrupt(int pin, int mS) {
+    int fd, x;
+    uint8_t c;
+    struct pollfd polls;
+
+    if (pinToGpio == 0 || physToGpio == 0) {
+        printf("please call wiringPiSetup first.\n");
+        return;
+    }
+
+    if (wiringPiMode == WPI_MODE_PINS) {
+        pin = pinToGpio [pin];
+    } else if (wiringPiMode == WPI_MODE_PHYS) {
+        pin = physToGpio [pin];
+    }
+
+    if ((fd = sysFds [pin]) == -1)
+        return -2;
+
+    // Setup poll structure
+
+    polls.fd = fd;
+    polls.events = POLLPRI; // Urgent data!
+
+    // Wait for it ...
+
+    x = poll(&polls, 1, mS);
+
+    // Do a dummy read to clear the interrupt
+    //	A one character read appars to be enough.
+
+    (void) read(fd, &c, 1);
+
+    return x;
+}
+
+/*
+ * interruptHandler:
+ *	This is a thread and gets started to wait for the interrupt we're
+ *	hoping to catch. It will call the user-function when the interrupt
+ *	fires.
+ *********************************************************************************
+ */
+
+/*
+static void *interruptHandler(void *arg) {
+    int myPin;
+
+    (void) piHiPri(55); // Only effective if we run as root
+
+    myPin = pinPass;
+    pinPass = -1;
+
+    for (;;)
+        if (waitForInterrupt(myPin, -1) > 0)
+            isrFunctions [myPin] ();
+
+    return NULL;
+}
+*/
+
+/*
+ * wiringPiISR:
+ *	Pi Specific.
+ *	Take the details and create an interrupt handler that will do a call-
+ *	back to the user supplied function.
+ *********************************************************************************
+ */
+
+int wiringPiISR(int pin, int mode, void (*function)(void)) {
+    int bcmGpioPin;
+
+    if (pinToGpio == 0 || physToGpio == 0) {
+        printf("please call wiringPiSetup first.\n");
+        return -1;
+    }
+
+    return wiringPiFailure(WPI_FATAL, "wiringPiISR: Not implemented");
+    
+    if ((pin < 0) || (pin >= MAX_PIN_COUNT))
+        return wiringPiFailure(WPI_FATAL, "wiringPiISR: pin must be 0-%d (%d)\n", MAX_PIN_COUNT-1, pin);
+
+    /**/ if (wiringPiMode == WPI_MODE_UNINITIALISED)
+        return wiringPiFailure(WPI_FATAL, "wiringPiISR: wiringPi has not been initialised. Unable to continue.\n");
+    else if (wiringPiMode == WPI_MODE_PINS)
+        bcmGpioPin = pinToGpio [pin];
+    else if (wiringPiMode == WPI_MODE_PHYS)
+        bcmGpioPin = physToGpio [pin];
+    else
+        bcmGpioPin = pin;
+
+    if (-1 == bcmGpioPin) /**/ {
+        printf("[%s:L%d] the pin:%d is invaild,please check it over!\n", __func__, __LINE__, pin);
+        return -1;
+    }
+
+    //if (edge[bcmGpioPin] == -1)
+    return wiringPiFailure(WPI_FATAL, "wiringPiISR: pin not sunpprt on Nano PI M1 (%d,%d)\n", pin, bcmGpioPin);
+}
+
+
